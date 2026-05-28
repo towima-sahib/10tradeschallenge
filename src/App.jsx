@@ -66,8 +66,11 @@ function App() {
       .eq('player_id', playerId)
       .order('trade_number', { ascending: true })
 
-    if (error) alert(error.message)
-    else setTrades(data)
+    if (error) {
+      alert(error.message)
+    } else {
+      setTrades(data)
+    }
   }
 
   async function loadLeaderboard() {
@@ -104,14 +107,20 @@ function App() {
   }
 
   async function createProfile() {
+    if (!displayName) {
+      alert('Please enter a display name.')
+      return
+    }
+
     const { data, error } = await supabase
       .from('players')
       .insert([{ display_name: displayName }])
       .select()
       .single()
 
-    if (error) alert(error.message)
-    else {
+    if (error) {
+      alert(error.message)
+    } else {
       setProfile(data)
       setTrades([])
       loadLeaderboard()
@@ -150,8 +159,9 @@ function App() {
       .select()
       .single()
 
-    if (error) alert(error.message)
-    else {
+    if (error) {
+      alert(error.message)
+    } else {
       setProfile(data)
       setInitialProofFile(null)
       loadLeaderboard()
@@ -161,6 +171,11 @@ function App() {
   async function addTrade() {
     if (!tradeNumber || !itemGiven || !itemReceived) {
       alert('Trade number, item given, and item received are required.')
+      return
+    }
+
+    if (Number(tradeNumber) < 1 || Number(tradeNumber) > 10) {
+      alert('Trade number must be between 1 and 10.')
       return
     }
 
@@ -207,7 +222,11 @@ function App() {
   }
 
   async function signUp() {
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
     if (error) alert(error.message)
   }
 
@@ -245,6 +264,7 @@ function App() {
         />
 
         <button onClick={signUp}>Sign Up</button>
+
         <button onClick={signIn} style={{ marginLeft: 10 }}>
           Sign In
         </button>
@@ -283,6 +303,12 @@ function App() {
       >
         <strong>Beta version:</strong> You can upload your initial £1 item and
         trades now. Proof reveal and scoring are still being added.
+        <br />
+        <br />
+        <strong>Privacy notice:</strong> Please do not upload receipts,
+        screenshots, or images containing personally identifiable information
+        such as addresses, phone numbers, email addresses, payment details, or
+        account information.
       </div>
 
       <p>Logged in as: {profile.display_name}</p>
@@ -340,6 +366,7 @@ function App() {
           <p>
             <strong>Initial item:</strong> {profile.initial_item}
           </p>
+
           <p>
             <strong>Proof:</strong>{' '}
             {profile.initial_item_proof_path ? 'Uploaded' : 'Missing'}
@@ -418,19 +445,24 @@ function App() {
                 }}
               >
                 <h3>Trade {trade.trade_number}</h3>
+
                 <p>
                   <strong>Given:</strong> {trade.item_given}
                 </p>
+
                 <p>
                   <strong>Received:</strong> {trade.item_received}
                 </p>
+
                 <p>
                   <strong>Estimated value:</strong>{' '}
                   {trade.estimated_value ?? 'Not entered'}
                 </p>
+
                 <p>
                   <strong>Notes:</strong> {trade.notes || 'None'}
                 </p>
+
                 <p>
                   <strong>Proof:</strong>{' '}
                   {trade.proof_file_path ? 'Uploaded' : 'Missing'}
