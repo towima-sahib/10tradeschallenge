@@ -25,7 +25,10 @@ function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) loadProfile(session.user.id)
+
+      if (session) {
+        loadProfile(session.user.id)
+      }
     })
 
     const {
@@ -74,23 +77,13 @@ function App() {
   }
 
   async function loadLeaderboard() {
-    const { data: players, error: playersError } = await supabase
+    const { data: players } = await supabase
       .from('players')
-      .select('id, display_name, finished, final_score')
+      .select('id, display_name, finished')
 
-    if (playersError) {
-      alert(playersError.message)
-      return
-    }
-
-    const { data: allTrades, error: tradesError } = await supabase
+    const { data: allTrades } = await supabase
       .from('trades')
       .select('player_id')
-
-    if (tradesError) {
-      alert(tradesError.message)
-      return
-    }
 
     const rows = players.map((player) => {
       const tradeCount = allTrades.filter(
@@ -122,7 +115,6 @@ function App() {
       alert(error.message)
     } else {
       setProfile(data)
-      setTrades([])
       loadLeaderboard()
     }
   }
@@ -163,19 +155,13 @@ function App() {
       alert(error.message)
     } else {
       setProfile(data)
-      setInitialProofFile(null)
       loadLeaderboard()
     }
   }
 
   async function addTrade() {
     if (!tradeNumber || !itemGiven || !itemReceived) {
-      alert('Trade number, item given, and item received are required.')
-      return
-    }
-
-    if (Number(tradeNumber) < 1 || Number(tradeNumber) > 10) {
-      alert('Trade number must be between 1 and 10.')
+      alert('Please complete all required fields.')
       return
     }
 
@@ -216,6 +202,7 @@ function App() {
       setEstimatedValue('')
       setNotes('')
       setTradeProofFile(null)
+
       loadTrades(profile.id)
       loadLeaderboard()
     }
@@ -227,7 +214,9 @@ function App() {
       password,
     })
 
-    if (error) alert(error.message)
+    if (error) {
+      alert(error.message)
+    }
   }
 
   async function signIn() {
@@ -236,7 +225,9 @@ function App() {
       password,
     })
 
-    if (error) alert(error.message)
+    if (error) {
+      alert(error.message)
+    }
   }
 
   async function signOut() {
@@ -245,14 +236,13 @@ function App() {
 
   if (!session) {
     return (
-      <div style={{ padding: 40 }}>
+      <div className="container">
         <h1>10 Trades Challenge</h1>
 
         <input
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ display: 'block', marginBottom: 10 }}
         />
 
         <input
@@ -260,59 +250,59 @@ function App() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ display: 'block', marginBottom: 10 }}
         />
 
         <button onClick={signUp}>Sign Up</button>
-
-        <button onClick={signIn} style={{ marginLeft: 10 }}>
-          Sign In
-        </button>
+        <button onClick={signIn}>Sign In</button>
       </div>
     )
   }
 
   if (!profile) {
     return (
-      <div style={{ padding: 40 }}>
+      <div className="container">
         <h1>Create Player Profile</h1>
 
         <input
           placeholder="Display Name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          style={{ display: 'block', marginBottom: 10 }}
         />
 
-        <button onClick={createProfile}>Create Profile</button>
+        <button onClick={createProfile}>
+          Create Profile
+        </button>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: 40 }}>
+    <div className="container">
       <h1>10 Trades Challenge</h1>
 
-      <div
-        style={{
-          background: '#fff3cd',
-          border: '1px solid #ffeeba',
-          padding: 12,
-          marginBottom: 20,
-        }}
-      >
+      <div className="notice">
         <strong>Beta version:</strong> You can upload your initial £1 item and
         trades now. Proof reveal and scoring are still being added.
+
         <br />
         <br />
+
         <strong>Privacy notice:</strong> Please do not upload receipts,
         screenshots, or images containing personally identifiable information
         such as addresses, phone numbers, email addresses, payment details, or
         account information.
       </div>
 
-      <p>Logged in as: {profile.display_name}</p>
-      <p>Finished: {profile.finished ? 'Yes' : 'No'}</p>
+      <p>
+        Logged in as <strong>{profile.display_name}</strong>
+      </p>
+
+      <p className="status">
+        Status:{' '}
+        <span className={profile.finished ? 'success' : 'pending'}>
+          {profile.finished ? 'Finished' : 'In Progress'}
+        </span>
+      </p>
 
       <button onClick={signOut}>Sign Out</button>
 
@@ -320,24 +310,20 @@ function App() {
 
       <h2>Leaderboard</h2>
 
-      {leaderboard.length === 0 ? (
-        <p>No players yet.</p>
-      ) : (
-        leaderboard.map((player) => (
-          <div
-            key={player.id}
-            style={{
-              border: '1px solid #ccc',
-              padding: 12,
-              marginBottom: 8,
-            }}
-          >
-            <strong>{player.display_name}</strong>
-            <p>Trades completed: {player.tradeCount} / 10</p>
-            <p>Status: {player.finished ? 'Finished' : 'In progress'}</p>
-          </div>
-        ))
-      )}
+      {leaderboard.map((player) => (
+        <div className="card" key={player.id}>
+          <strong>{player.display_name}</strong>
+
+          <p>
+            Trades completed: {player.tradeCount} / 10
+          </p>
+
+          <p>
+            Status:{' '}
+            {player.finished ? 'Finished' : 'In Progress'}
+          </p>
+        </div>
+      ))}
 
       <hr />
 
@@ -349,29 +335,34 @@ function App() {
             placeholder="What did you buy for £1?"
             value={initialItem}
             onChange={(e) => setInitialItem(e.target.value)}
-            style={{ display: 'block', marginBottom: 10 }}
           />
 
           <input
             type="file"
             accept="image/*,.pdf"
-            onChange={(e) => setInitialProofFile(e.target.files[0])}
-            style={{ display: 'block', marginBottom: 10 }}
+            onChange={(e) =>
+              setInitialProofFile(e.target.files[0])
+            }
           />
 
-          <button onClick={saveInitialItem}>Save Initial Item</button>
+          <button onClick={saveInitialItem}>
+            Save Initial Item
+          </button>
         </>
       ) : (
-        <>
+        <div className="card">
           <p>
-            <strong>Initial item:</strong> {profile.initial_item}
+            <strong>Initial item:</strong>{' '}
+            {profile.initial_item}
           </p>
 
           <p>
             <strong>Proof:</strong>{' '}
-            {profile.initial_item_proof_path ? 'Uploaded' : 'Missing'}
+            {profile.initial_item_proof_path
+              ? 'Uploaded'
+              : 'Missing'}
           </p>
-        </>
+        </div>
       )}
 
       <hr />
@@ -386,47 +377,53 @@ function App() {
             max="10"
             placeholder="Trade number"
             value={tradeNumber}
-            onChange={(e) => setTradeNumber(e.target.value)}
-            style={{ display: 'block', marginBottom: 10 }}
+            onChange={(e) =>
+              setTradeNumber(e.target.value)
+            }
           />
 
           <input
             placeholder="Item given"
             value={itemGiven}
-            onChange={(e) => setItemGiven(e.target.value)}
-            style={{ display: 'block', marginBottom: 10 }}
+            onChange={(e) =>
+              setItemGiven(e.target.value)
+            }
           />
 
           <input
             placeholder="Item received"
             value={itemReceived}
-            onChange={(e) => setItemReceived(e.target.value)}
-            style={{ display: 'block', marginBottom: 10 }}
+            onChange={(e) =>
+              setItemReceived(e.target.value)
+            }
           />
 
           <input
             type="number"
             placeholder="Estimated value"
             value={estimatedValue}
-            onChange={(e) => setEstimatedValue(e.target.value)}
-            style={{ display: 'block', marginBottom: 10 }}
+            onChange={(e) =>
+              setEstimatedValue(e.target.value)
+            }
           />
 
           <textarea
             placeholder="Notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            style={{ display: 'block', marginBottom: 10 }}
           />
 
           <input
             type="file"
             accept="image/*,.pdf"
-            onChange={(e) => setTradeProofFile(e.target.files[0])}
-            style={{ display: 'block', marginBottom: 10 }}
+            onChange={(e) =>
+              setTradeProofFile(e.target.files[0])
+            }
           />
 
-          <button onClick={addTrade}>Save Trade</button>
+          <button onClick={addTrade}>
+            Save Trade
+          </button>
 
           <hr />
 
@@ -436,36 +433,35 @@ function App() {
             <p>No trades added yet.</p>
           ) : (
             trades.map((trade) => (
-              <div
-                key={trade.id}
-                style={{
-                  border: '1px solid #ccc',
-                  padding: 15,
-                  marginBottom: 10,
-                }}
-              >
+              <div className="card" key={trade.id}>
                 <h3>Trade {trade.trade_number}</h3>
 
                 <p>
-                  <strong>Given:</strong> {trade.item_given}
+                  <strong>Given:</strong>{' '}
+                  {trade.item_given}
                 </p>
 
                 <p>
-                  <strong>Received:</strong> {trade.item_received}
+                  <strong>Received:</strong>{' '}
+                  {trade.item_received}
                 </p>
 
                 <p>
                   <strong>Estimated value:</strong>{' '}
-                  {trade.estimated_value ?? 'Not entered'}
+                  {trade.estimated_value ??
+                    'Not entered'}
                 </p>
 
                 <p>
-                  <strong>Notes:</strong> {trade.notes || 'None'}
+                  <strong>Notes:</strong>{' '}
+                  {trade.notes || 'None'}
                 </p>
 
                 <p>
                   <strong>Proof:</strong>{' '}
-                  {trade.proof_file_path ? 'Uploaded' : 'Missing'}
+                  {trade.proof_file_path
+                    ? 'Uploaded'
+                    : 'Missing'}
                 </p>
               </div>
             ))
