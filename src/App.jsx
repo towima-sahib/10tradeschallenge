@@ -13,6 +13,8 @@ function App() {
   const [initialProofFile, setInitialProofFile] = useState(null)
 
   const [trades, setTrades] = useState([])
+  const [leaderboard, setLeaderboard] = useState([])
+
   const [tradeNumber, setTradeNumber] = useState('')
   const [itemGiven, setItemGiven] = useState('')
   const [itemReceived, setItemReceived] = useState('')
@@ -36,6 +38,7 @@ function App() {
       } else {
         setProfile(null)
         setTrades([])
+        setLeaderboard([])
       }
     })
 
@@ -52,6 +55,7 @@ function App() {
     if (data) {
       setProfile(data)
       loadTrades(data.id)
+      loadLeaderboard()
     }
   }
 
@@ -62,29 +66,55 @@ function App() {
       .eq('player_id', playerId)
       .order('trade_number', { ascending: true })
 
-    if (error) {
-      alert(error.message)
-    } else {
-      setTrades(data)
+    if (error) alert(error.message)
+    else setTrades(data)
+  }
+
+  async function loadLeaderboard() {
+    const { data: players, error: playersError } = await supabase
+      .from('players')
+      .select('id, display_name, finished, final_score')
+
+    if (playersError) {
+      alert(playersError.message)
+      return
     }
+
+    const { data: allTrades, error: tradesError } = await supabase
+      .from('trades')
+      .select('player_id')
+
+    if (tradesError) {
+      alert(tradesError.message)
+      return
+    }
+
+    const rows = players.map((player) => {
+      const tradeCount = allTrades.filter(
+        (trade) => trade.player_id === player.id
+      ).length
+
+      return {
+        ...player,
+        tradeCount,
+      }
+    })
+
+    setLeaderboard(rows)
   }
 
   async function createProfile() {
     const { data, error } = await supabase
       .from('players')
-      .insert([
-        {
-          display_name: displayName,
-        },
-      ])
+      .insert([{ display_name: displayName }])
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-    } else {
+    if (error) alert(error.message)
+    else {
       setProfile(data)
       setTrades([])
+      loadLeaderboard()
     }
   }
 
@@ -120,11 +150,11 @@ function App() {
       .select()
       .single()
 
-    if (error) {
-      alert(error.message)
-    } else {
+    if (error) alert(error.message)
+    else {
       setProfile(data)
       setInitialProofFile(null)
+      loadLeaderboard()
     }
   }
 
@@ -172,15 +202,12 @@ function App() {
       setNotes('')
       setTradeProofFile(null)
       loadTrades(profile.id)
+      loadLeaderboard()
     }
   }
 
   async function signUp() {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
+    const { error } = await supabase.auth.signUp({ email, password })
     if (error) alert(error.message)
   }
 
@@ -218,7 +245,6 @@ function App() {
         />
 
         <button onClick={signUp}>Sign Up</button>
-
         <button onClick={signIn} style={{ marginLeft: 10 }}>
           Sign In
         </button>
@@ -255,15 +281,37 @@ function App() {
           marginBottom: 20,
         }}
       >
-        <strong>Beta version:</strong> You can upload your initial £1 item now.
-        Trade uploads, leaderboard, proof reveal, and scoring are still being
-        added.
+        <strong>Beta version:</strong> You can upload your initial £1 item and
+        trades now. Proof reveal and scoring are still being added.
       </div>
 
       <p>Logged in as: {profile.display_name}</p>
       <p>Finished: {profile.finished ? 'Yes' : 'No'}</p>
 
       <button onClick={signOut}>Sign Out</button>
+
+      <hr />
+
+      <h2>Leaderboard</h2>
+
+      {leaderboard.length === 0 ? (
+        <p>No players yet.</p>
+      ) : (
+        leaderboard.map((player) => (
+          <div
+            key={player.id}
+            style={{
+              border: '1px solid #ccc',
+              padding: 12,
+              marginBottom: 8,
+            }}
+          >
+            <strong>{player.display_name}</strong>
+            <p>Trades completed: {player.tradeCount} / 10</p>
+            <p>Status: {player.finished ? 'Finished' : 'In progress'}</p>
+          </div>
+        ))
+      )}
 
       <hr />
 
@@ -370,24 +418,19 @@ function App() {
                 }}
               >
                 <h3>Trade {trade.trade_number}</h3>
-
                 <p>
                   <strong>Given:</strong> {trade.item_given}
                 </p>
-
                 <p>
                   <strong>Received:</strong> {trade.item_received}
                 </p>
-
                 <p>
                   <strong>Estimated value:</strong>{' '}
                   {trade.estimated_value ?? 'Not entered'}
                 </p>
-
                 <p>
                   <strong>Notes:</strong> {trade.notes || 'None'}
                 </p>
-
                 <p>
                   <strong>Proof:</strong>{' '}
                   {trade.proof_file_path ? 'Uploaded' : 'Missing'}
