@@ -50,7 +50,6 @@ function App() {
       .from('players')
       .insert([
         {
-          user_id: session.user.id,
           display_name: displayName,
         },
       ])
