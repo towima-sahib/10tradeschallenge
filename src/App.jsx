@@ -240,6 +240,15 @@ function App() {
               marginBottom: 10,
             }}
           />
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => setInitialProofFile(e.target.files[0])}
+            style={{
+              display: 'block',
+              marginBottom: 10,
+            }}
+          />
 
           <button onClick={saveInitialItem}>
             Save Initial Item
